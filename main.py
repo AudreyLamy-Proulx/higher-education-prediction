@@ -136,7 +136,6 @@ balance = lambda x: min(sum(x == 0), sum(x == 1))/max(sum(x == 0),
 X, y = util.preprocessing(X, y, balance(y), standardize = True)  
 
 # Séparation en train et test sets
-# Code pour la validation croisée est utilisé (3%)
 Xtrain, Xtest, ytrain, ytest = train_test_split(X, y, test_size = 0.33, 
                                                 random_state = 42) 
 
@@ -211,9 +210,8 @@ CODAGE RECURSIF ET ALGORITHME D'AUTOMATISATION
 """
 print("\nÂges différents présents, en ordre d'apparition: ", df.age.unique())
 print("\n...Mise en ordre des âges par codage récursif...\n")
-util.quick_sort(df.age.unique()) # code pour codage récursif, présent (3%)
+util.quick_sort(df.age.unique()) 
 
-# au moins un algorithme d'automatisation est utilisé(2%)
 print("\n...Algorithme d'automatisation ordonne les résultats moyens...\n")
 print("Résultats moyens ordonnés (valeurs uniques): ")
 gmoy_ordonne = util.insertion_sort(list(df['G_moy']))
@@ -230,7 +228,6 @@ student.presentation()
 
 """
 CODE POUR BASE DE DONNÉES SQLITE
-Code pour la base de données sqlite, utilisé (2%)
 """
 
 table_name = "student" + str(num) # Nom du tableau 
@@ -252,22 +249,21 @@ print('\nDonnées du tableau sqlite: ', res)
 
 """
 ARCHIVAGE DES DONNÉES
-code pour archivage de données, présent (1%)
 """
 # Archiver les graphiques produits 
 base_dir = os.path.join(os.path.dirname(__file__), 'figures')
 make_archive(base_name = os.path.join(os.path.dirname(__file__), 
-                                      'figures_audrey'), 
+                                      'figures'), 
                                       format = 'gztar', 
                                       base_dir=base_dir)
 
-# Extraire les graphiques archivés
-extract_dir = os.path.join(os.path.dirname(__file__), 
-                           'figures_extracted_audrey')
-unpack_archive(filename = os.path.join(os.path.dirname(__file__), 
-                                       'figures_audrey.tar.gz'), 
-                                       format = 'gztar', 
-                                       extract_dir = extract_dir)
+# # Extraire les graphiques archivés
+# extract_dir = os.path.join(os.path.dirname(__file__), 
+#                            'figures_extracted')
+# unpack_archive(filename = os.path.join(os.path.dirname(__file__), 
+#                                        'figures.tar.gz'), 
+#                                        format = 'gztar', 
+#                                        extract_dir = extract_dir)
 
 print("\nLes figures sont disponibles dans le dossier 'Figures'")
 print("Les résultats sont rapportés et interprétés dans results.txt")
