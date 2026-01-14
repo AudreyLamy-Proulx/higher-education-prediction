@@ -3,6 +3,7 @@ import os
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
+from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 from sklearn.decomposition import PCA
@@ -11,7 +12,6 @@ from sklearn.pipeline import make_pipeline
 from statsmodels.formula.api import ols 
 from sklearn.cluster import KMeans
 from shutil import make_archive, unpack_archive
-from yellowbrick.cluster import KElbowVisualizer
 from bin import util as util 
 from bin.student import Student
 
@@ -124,62 +124,75 @@ for vi in VI_sign:
 """
 3. Dans quelle mesure les variables disponibles permettent de prédire la 
 volonté de faire des études supérieures?
+Ici, le plus important est de maximiser la précision puisque les faux positifs 
+sont plus graves que les faux négatifs, ie identifier un étudiant comme voulant 
+poursuivre des études supérieures alors qu'il ne le veut pas fait qu'on ne l'aidera 
+pas s'il vit des difficultés qui l'empêchent de se voir poursuivre ses études supérieures. 
+VS il n'est pas grave de mettre des efforts sur un étudiant identifier comme ne 
+voulant pas poursuivre des études supérieures alors qu'il le veut. 
 """
 y = df['higher']
 X = df.loc[:, df.columns != 'higher']
- 
-# Balancement des données si écart trop important entre les groupes 
-balance = lambda x: min(sum(x == 0), sum(x == 1))/max(sum(x == 0), 
-                                                      sum(x == 1)) < 0.25 
-
-# Prétraitement des données
-X, y = util.preprocessing(X, y, balance(y), standardize = True)  
 
 # Séparation en train et test sets
 Xtrain, Xtest, ytrain, ytest = train_test_split(X, y, test_size = 0.33, 
-                                                random_state = 42) 
+                                                random_state = 42, stratify = y) 
+
+# Standardisation des données
+scaler = StandardScaler()
+Xtrain = scaler.fit_transform(Xtrain)
+Xtest = scaler.transform(Xtest)
 
 # Nombre de composantes optimales selon ratio variance expliquée vs biais 
 n_comp = util.optimal_n_comp(Xtrain, threshold = 0.023) 
 
-# Pipeline d'AA supervisé: PCA et random forest classifier 
-model_aa_supervised = make_pipeline(
-                PCA(n_components = n_comp, random_state = 42), 
-                RandomForestClassifier(random_state = 42)).fit(Xtrain, ytrain)
+# Random forest classifier
+model_rf = RandomForestClassifier(random_state = 42).fit(Xtrain, ytrain)
 
-pred_test = model_aa_supervised.predict(Xtest)
+pred_test = model_rf.predict(Xtest)
 
 # Métriques de la classification
 util.metrics(ytest, pred_test)
 
-pca = model_aa_supervised.named_steps['pca'] # Extraire l'ACP du pipeline
-
-util.plot_classif_test('random_forest', Xtest, ytest, pred_test, pca, save_dir) 
+util.plot_classif_test('random_forest', Xtest, ytest, pred_test, save_dir) 
 
 """
 4. Comment les données sont-elles organisées? Y a-t-il des clusters?
 """
-#Pour déterminer le nombre optimal de clusters ->elbow metho -> 5 clusters 
+# Pour déterminer le nombre optimal de clusters ->elbow method
 X = df.loc[:, df.columns!='higher']
 
-pca = PCA(random_state = 42, n_components = 2).fit(X)
-X_pca = pca.transform(X)
 
-kmeans = KMeans(random_state = 42, n_clusters = 4).fit(X_pca)
-model = KElbowVisualizer(kmeans, k = 10)
-model.fit(X)
-#model.show()
-plt.title('Elbow method pour déterminer nombre de clusters optimal')
+# Appliquer PCA (même transformation que dans le pipeline)
+pca_for_elbow = PCA(random_state=42, n_components=2)
+X_pca_elbow = pca_for_elbow.fit_transform(X)
+
+# Elbow method sur les données PCA (2D) - même espace où le clustering sera fait
+inertias = []
+k_range = range(1, 11) # Test k from 1 to 10
+
+for k in k_range:
+    # Initialize and fit the KMeans model sur données PCA
+    kmeans = KMeans(n_clusters=k, random_state=42, n_init='auto') 
+    kmeans.fit(X_pca_elbow)
+    # Append the inertia (WCSS) to the list
+    inertias.append(kmeans.inertia_)
+
+# Plot the elbow curve
+plt.figure(figsize=(10, 6))
+plt.plot(k_range, inertias, marker='o', linestyle='--')
+plt.xlabel("Number of clusters (k)")
+plt.ylabel("Inertia (WCSS)")
+plt.title("Elbow Method to determine optimal k (sur données PCA 2D)")
+plt.grid(True)
 plt.savefig(os.path.join(save_dir, 'optimal_clusters_number'))
-plt.clf()
-plt.cla()
-plt.close()
+plt.show()
 
-X = df.loc[:, df.columns!='higher']
+optimal_k = int(input("Nombre optimal de clusters: "))
 
-# Pipeline d'AA non-supervisé: PCA et kmeans clustering  
+# Pipeline d'AA non-supervisé: PCA et kmeans clustering
 model_aa_unsupervised = make_pipeline(PCA(random_state = 42, n_components = 2),  
-                        KMeans(random_state = 42, n_clusters = 5)).fit(X)
+                        KMeans(random_state = 42, n_clusters = optimal_k, n_init='auto')).fit(X)
 
 ypred = model_aa_unsupervised.predict(X)
 
@@ -189,22 +202,46 @@ X_pca = pca.transform(X)
 kmeans = model_aa_unsupervised.named_steps['kmeans'] # Extraire kmeans
 centers = kmeans.cluster_centers_                    # centres des clusters 
 
-# Nombre de valeurs dans chaque cluster
+# Nombre de valeurs dans chaque cluster (trier par numéro de cluster)
 num, sizes = np.unique(ypred, return_counts = True)
+sorted_indices = np.argsort(num)  # Trier pour avoir clusters dans l'ordre
+num = num[sorted_indices]
+sizes = sizes[sorted_indices]
 
-plt.scatter(X_pca[:, 0], X_pca[:, 1], c = ypred, s = 50, cmap = 'viridis')
-plt.scatter(centers[:, 0], centers[:, 1], c = 'black', s = 100, alpha = 0.7)
-plt.text(25, 7.5, 
-'Cluster sizes\nC1: {0}, C2: {1}, C3: {2}, C4: {3}, C5: {4}'.format(*sizes))
+# Créer la colormap et mapper les couleurs aux clusters
+cmap = plt.cm.get_cmap('viridis')
+norm = plt.Normalize(vmin=ypred.min(), vmax=ypred.max())
+
+# Scatter plot avec couleurs selon clusters
+scatter = plt.scatter(X_pca[:, 0], X_pca[:, 1], c = ypred, s = 50, cmap = 'viridis', 
+                      alpha = 0.6, edgecolors='k', linewidths=0.5)
+plt.scatter(centers[:, 0], centers[:, 1], c = 'red', s = 200, alpha = 0.8, 
+            marker='X', edgecolors='black', linewidths=2, label='Centroids', zorder=10)
+
+# Créer la légende avec les couleurs correspondantes
+legend_elements = []
+for i, (cluster_num, size) in enumerate(zip(num, sizes)):
+    color = cmap(norm(cluster_num))
+    legend_elements.append(plt.Line2D([0], [0], marker='o', color='w', 
+                                     markerfacecolor=color, markersize=10,
+                                     label=f'Cluster {cluster_num} (n={size})'))
+
+plt.legend(handles=legend_elements, loc='best', title='Clusters')
 plt.xlabel('PCA1')
 plt.ylabel('PCA2')
-plt.title('Clustering par kmeans')
+plt.title('Clustering par kmeans (visualisation 2D PCA)')
 # plt.show()
 plt.savefig(os.path.join(save_dir, 'kmeans_clustering'))
 plt.clf()
 plt.cla()
 plt.close()
 
+
+
+
+"""
+OTHER
+"""
 """
 CODAGE RECURSIF ET ALGORITHME D'AUTOMATISATION
 """

@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import sqlite3 as sq
 from sklearn.metrics import classification_report, confusion_matrix
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 from sklearn.decomposition import PCA
 from scipy import stats
 from imblearn.over_sampling import RandomOverSampler
@@ -70,8 +70,10 @@ def metrics(ytest, pred):
     print('\n---Confusion matrix---')
     print(confusion_matrix(ytest, pred))
     
-    print('\n---Accuracy---')
-    print(accuracy_score(ytest, pred)) 
+    print(f"\nAccuracy: {accuracy_score(ytest, pred):.2f}")
+    print(f"Precision: {precision_score(ytest, pred):.2f}")
+    print(f"Recall: {recall_score(ytest, pred):.2f}")
+    print(f"F1-score: {f1_score(ytest, pred):.2f}")
 
 
 def rejet_valeurs_manquantes(df):
@@ -96,7 +98,7 @@ def rejet_valeurs_manquantes(df):
     return df
 
 
-def plot_classif_test(algo, Xtest, ytest, ypred, pca, save_dir):
+def plot_classif_test(algo, Xtest, ytest, ypred, save_dir):
     """
     Imprime et sauvegarde un graphique des features du test set identifiés 
     selon leur classe en identifiant erreurs de classification de l'algorithme.
@@ -105,19 +107,16 @@ def plot_classif_test(algo, Xtest, ytest, ypred, pca, save_dir):
     Xtest: test set des features
     ytest: test set des labels
     ypred: labels prédits
-    pca: principal component analysis model
     save_dir: path où sauvegarder la figure 
     """
-    X_test_transformed = pca.transform(Xtest)
-    
     for l, c, m in zip(range(0, 2), ('blue', 'green'), ('^', 's')):
-        plt.scatter(X_test_transformed[ytest == l, 0],
-                    X_test_transformed[ytest == l, 1],
+        plt.scatter(Xtest[ytest == l, 0],
+                    Xtest[ytest == l, 1],
                     color = c,
                     label = '{0} : {1}'.format(l, 'no' if l == 0 else 'yes'),
                     alpha = 0.5,
                     marker = m)
-    errors = X_test_transformed[np.where(ypred != ytest)] # Erreurs prédiction 
+    errors = Xtest[np.where(ypred != ytest)] # Erreurs prédiction 
 
     plt.scatter(errors[:, 0], errors[:, 1], c = 'r', label = 'erreur')
     plt.legend()
