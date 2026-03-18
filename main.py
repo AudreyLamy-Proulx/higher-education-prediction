@@ -40,7 +40,7 @@ volonté de faire des études supérieures?
 disponibles dans la banque de données initiale) 
 -> Algorithmes: PCA pour réduction de dimensionalité, random forest classifier
 Exploratoire, pas d'hypothèse 
-
+ 
 4. Comment les données sont-elles organisées? Y a-t-il des clusters?
 -> Algorithme d'apprentissage non-supervisé: kmeans
 Exploratoire, pas d'hypothèse 
@@ -112,14 +112,14 @@ VI_sign = list(filter(
 print(model.summary(), "\n")
 print("\nVariables ayant effet significatif sur résultat : ", VI_sign, "\n")
 
-for vi in VI_sign:
-    sns.displot(df,x = 'G_moy', hue = vi).set(title = 
-        "Histogramme résultat moyen pour chaque niveau de {0} ".format(vi)) 
-    plt.savefig(os.path.join(save_dir, 'hist_{0}_gmoy'.format(vi))) 
-    # plt.show()
-    plt.clf()
-    plt.cla()
-    plt.close()
+# for vi in VI_sign:
+#     sns.displot(df,x = 'G_moy', hue = vi).set(title = 
+#         "Histogramme résultat moyen pour chaque niveau de {0} ".format(vi)) 
+#     plt.savefig(os.path.join(save_dir, 'hist_{0}_gmoy'.format(vi))) 
+#     # plt.show()
+#     plt.clf()
+#     plt.cla()
+#     plt.close()
 
 """
 3. Dans quelle mesure les variables disponibles permettent de prédire la 
@@ -138,14 +138,6 @@ X = df.loc[:, df.columns != 'higher']
 Xtrain, Xtest, ytrain, ytest = train_test_split(X, y, test_size = 0.33, 
                                                 random_state = 42, stratify = y) 
 
-# Standardisation des données
-scaler = StandardScaler()
-Xtrain = scaler.fit_transform(Xtrain)
-Xtest = scaler.transform(Xtest)
-
-# Nombre de composantes optimales selon ratio variance expliquée vs biais 
-n_comp = util.optimal_n_comp(Xtrain, threshold = 0.023) 
-
 # Random forest classifier
 model_rf = RandomForestClassifier(random_state = 42).fit(Xtrain, ytrain)
 
@@ -154,7 +146,7 @@ pred_test = model_rf.predict(Xtest)
 # Métriques de la classification
 util.metrics(ytest, pred_test)
 
-util.plot_classif_test('random_forest', Xtest, ytest, pred_test, save_dir) 
+# util.plot_classif_test('random_forest', Xtest, ytest, pred_test, save_dir) 
 
 """
 4. Comment les données sont-elles organisées? Y a-t-il des clusters?

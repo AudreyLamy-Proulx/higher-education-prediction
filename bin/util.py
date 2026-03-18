@@ -12,10 +12,9 @@ from imblearn.over_sampling import RandomOverSampler
 from sklearn.preprocessing import StandardScaler
 
 
-# Au moins 5 « def » sont présents (2%)
 def preprocessing(x, y, balance, standardize):
     """
-    Fait les étapes demandées du prétraitement des données 
+    Balance et standardise les données si besoin
     x (array): variables indépendantes
     y (array): variable dépendante binaire (0 et 1)
     balance (bool): True-> balancement par oversampling (False non)
@@ -79,7 +78,6 @@ def metrics(ytest, pred):
 def rejet_valeurs_manquantes(df):
     """
     Rejet des lignes avec des valeurs manquantes 
-    (Code pour vérifier la présence des valeurs manquantes implémenté)
     df: cadre de données  
     """
     
@@ -223,7 +221,6 @@ def quick_sort(liste):
         print(liste)
         # Fonction appliquée sur éléments inférieurs au pivot, pivot, 
         # fonction appliquée sur éléments supérieurs au pivot
-        # code pour codage récursif, présent (3%)
         return quick_sort([e for e in liste[1:] if e <= liste[0]]) + \
             [liste[0]] + quick_sort([e for e in liste[1:] if e > liste[0]])
     
